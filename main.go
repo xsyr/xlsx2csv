@@ -5,7 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
+    "log"
+    "encoding/csv"
 
 	"github.com/tealeg/xlsx"
 )
@@ -15,21 +16,21 @@ var sheetIndex = flag.Int("i", 0, "Index of sheet to convert, zero based")
 var delimiter = flag.String("d", ";", "Delimiter to use between fields")
 var maxRows   = flag.Int("r", 1000, "max number of rows to process")
 
-type outputer func(s string)
-
-func generateCSVFromXLSXFile(excelFileName string, sheetIndex int, outputf outputer) error {
-	xlFile, error := xlsx.OpenFile(excelFileName)
-	if error != nil {
-		return error
+func generateCSVFromXLSXFile(excelFileName string, sheetIndex int) error {
+	xlFile, err := xlsx.OpenFile(excelFileName)
+	if err != nil {
+		return err
 	}
 	sheetLen := len(xlFile.Sheets)
 	switch {
 	case sheetLen == 0:
-		return errors.New("This XLSX file contains no sheets.")
+		return errors.New("This XLSX file contains no sheets")
 	case sheetIndex >= sheetLen:
-		return fmt.Errorf("No sheet %d available, please select a sheet between 0 and %d\n", sheetIndex, sheetLen-1)
+		return fmt.Errorf("No sheet %d available, please select a sheet between 0 and %d", sheetIndex, sheetLen-1)
 	}
 	sheet := xlFile.Sheets[sheetIndex]
+
+    w := csv.NewWriter(os.Stdout)
 	for i, row := range sheet.Rows {
         if i >= *maxRows {
             break
@@ -41,10 +42,11 @@ func generateCSVFromXLSXFile(excelFileName string, sheetIndex int, outputf outpu
 				str, err := cell.FormattedValue()
 				if err != nil {
 					vals = append(vals, err.Error())
-				}
-				vals = append(vals, fmt.Sprintf("%q", str))
+				} else {
+                    vals = append(vals, str)
+                }
 			}
-			outputf(strings.Join(vals, *delimiter) + "\n")
+            w.Write(vals)
 		}
 	}
 	return nil
@@ -57,8 +59,7 @@ func main() {
 		return
 	}
 	flag.Parse()
-	printer := func(s string) { fmt.Printf("%s", s) }
-	if err := generateCSVFromXLSXFile(*xlsxPath, *sheetIndex, printer); err != nil {
-		fmt.Println(err)
+	if err := generateCSVFromXLSXFile(*xlsxPath, *sheetIndex); err != nil {
+        log.Println(err)
 	}
 }
