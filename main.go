@@ -13,6 +13,7 @@ import (
 var xlsxPath = flag.String("f", "", "Path to an XLSX file")
 var sheetIndex = flag.Int("i", 0, "Index of sheet to convert, zero based")
 var delimiter = flag.String("d", ";", "Delimiter to use between fields")
+var maxRows   = flag.Int("r", 1000, "max number of rows to process")
 
 type outputer func(s string)
 
@@ -29,7 +30,11 @@ func generateCSVFromXLSXFile(excelFileName string, sheetIndex int, outputf outpu
 		return fmt.Errorf("No sheet %d available, please select a sheet between 0 and %d\n", sheetIndex, sheetLen-1)
 	}
 	sheet := xlFile.Sheets[sheetIndex]
-	for _, row := range sheet.Rows {
+	for i, row := range sheet.Rows {
+        if i >= *maxRows {
+            break
+        }
+
 		var vals []string
 		if row != nil {
 			for _, cell := range row.Cells {
