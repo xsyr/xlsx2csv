@@ -49,6 +49,7 @@ func generateCSVFromXLSXFile(excelFileName string, sheetIndex int) error {
             w.Write(vals)
 		}
 	}
+    w.Flush()
 	return nil
 }
 
